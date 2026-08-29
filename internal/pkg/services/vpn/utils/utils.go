@@ -34,6 +34,10 @@ func GetBGPFilterName(ctx context.Context, client vpn.DefaultAPI, projectId, reg
 	return "", nil
 }
 
+// deprecatedIntegrityAlgorithmRemovalDate is the date the API documentation announces for the
+// removal of the deprecated integrity algorithms.
+const deprecatedIntegrityAlgorithmRemovalDate = "2026-12-31"
+
 // deprecatedIntegrityAlgorithms lists the integrity algorithms which are still accepted by the API
 // but should no longer be used.
 var deprecatedIntegrityAlgorithms = []vpn.PhaseIntegrityAlgorithmsInner{
@@ -60,9 +64,10 @@ func WarnDeprecatedIntegrityAlgorithms(p *print.Printer, flagName string, algori
 			continue
 		}
 		p.Warn(
-			"The integrity algorithm %q configured via --%s is deprecated and should no longer be used. Please use one of %s instead.\n",
+			"The integrity algorithm %q configured via --%s is deprecated and is planned for removal on %s. Please use one of %s instead.\n",
 			string(algorithm),
 			flagName,
+			deprecatedIntegrityAlgorithmRemovalDate,
 			strings.Join(recommended, ", "),
 		)
 	}

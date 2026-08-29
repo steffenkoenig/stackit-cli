@@ -140,6 +140,11 @@ func tunnelTables(tunnel *vpn.TunnelConfiguration, title string) []tables.Table 
 		bgp = fmt.Sprintf("%d", tunnel.Bgp.RemoteAsn)
 	}
 	table.AddRow("BGP ASN", bgp)
+	var inboundFilterId string
+	if tunnel.Bgp != nil && tunnel.Bgp.InboundFilterId.IsSet() {
+		inboundFilterId = utils.PtrString(tunnel.Bgp.InboundFilterId.Get())
+	}
+	table.AddRow("BGP Inbound Filter ID", inboundFilterId)
 	var peering string
 	if tunnel.Peering != nil {
 		peering = fmt.Sprintf("%s/%s", utils.PtrString(tunnel.Peering.LocalAddress), utils.PtrString(tunnel.Peering.RemoteAddress))
@@ -158,7 +163,7 @@ func tunnelTables(tunnel *vpn.TunnelConfiguration, title string) []tables.Table 
 	phase2Table.AddRow("DH Groups", utils.JoinStringPtr(&tunnel.Phase2.DhGroups, ", "))
 	phase2Table.AddRow("Encryption Algos", utils.JoinStringPtr(&tunnel.Phase2.EncryptionAlgorithms, ", "))
 	phase2Table.AddRow("Integrity Algos", utils.JoinStringPtr(&tunnel.Phase2.IntegrityAlgorithms, ", "))
-	phase2Table.AddRow("Rekey Time", utils.PtrString(tunnel.Phase1.RekeyTime))
+	phase2Table.AddRow("Rekey Time", utils.PtrString(tunnel.Phase2.RekeyTime))
 	phase2Table.AddRow("Dpd Action", utils.PtrString(tunnel.Phase2.DpdAction))
 	phase2Table.AddRow("Start Action", utils.PtrString(tunnel.Phase2.StartAction))
 

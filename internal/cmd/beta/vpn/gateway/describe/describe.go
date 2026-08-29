@@ -117,6 +117,14 @@ func outputResult(p *print.Printer, outputFormat, gatewayId, projectLabel string
 		table.AddRow("Availability Zones Tunnel 1", gateway.AvailabilityZones.Tunnel1)
 		table.AddSeparator()
 		table.AddRow("Availability Zones Tunnel 2", gateway.AvailabilityZones.Tunnel2)
+		if bgp := gateway.Bgp; bgp != nil {
+			table.AddSeparator()
+			table.AddRow("BGP Local ASN", bgp.LocalAsn)
+			if len(bgp.OverrideAdvertisedRoutes) > 0 {
+				table.AddSeparator()
+				table.AddRow("BGP Override Advertised Routes", strings.Join(bgp.OverrideAdvertisedRoutes, "\n"))
+			}
+		}
 		if networkConfig := gateway.NetworkConfig; networkConfig != nil {
 			if len(networkConfig.PredefinedNetworkPrefix) > 0 {
 				table.AddSeparator()

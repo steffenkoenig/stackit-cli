@@ -35,4 +35,5 @@ stackit beta vpn connection [flags]
 * [stackit beta vpn connection describe](./stackit_beta_vpn_connection_describe.md)	 - Shows details of a VPN connection
 * [stackit beta vpn connection list](./stackit_beta_vpn_connection_list.md)	 - Lists all VPN connections of a gateway
 * [stackit beta vpn connection status](./stackit_beta_vpn_connection_status.md)	 - Shows the status of a VPN connection
+* [stackit beta vpn connection update](./stackit_beta_vpn_connection_update.md)	 - Updates a VPN connection
 

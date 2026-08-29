@@ -142,6 +142,9 @@ func TestWarnDeprecatedIntegrityAlgorithms(t *testing.T) {
 				if !strings.Contains(warning, "tunnel1-phase1-integrity-algorithms") {
 					t.Errorf("expected the warning to name the flag, got %q", warning)
 				}
+				if !strings.Contains(warning, deprecatedIntegrityAlgorithmRemovalDate) {
+					t.Errorf("expected the warning to name the removal date, got %q", warning)
+				}
 			} else if warning != "" {
 				t.Errorf("expected no warning, got %q", warning)
 			}
