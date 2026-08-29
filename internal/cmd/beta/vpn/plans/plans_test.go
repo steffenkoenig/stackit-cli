@@ -132,9 +132,10 @@ func TestBuildRequest(t *testing.T) {
 
 func TestOutputResult(t *testing.T) {
 	type args struct {
-		outputFormat string
-		projectLabel string
-		plans        []vpn.Plan
+		outputFormat  string
+		projectLabel  string
+		plans         []vpn.Plan
+		defaultPlanId *string
 	}
 	tests := []struct {
 		name    string
@@ -160,12 +161,30 @@ func TestOutputResult(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "default plan is marked",
+			args: args{
+				plans: []vpn.Plan{
+					{PlanId: utils.Ptr("p10"), Name: utils.Ptr("small")},
+					{PlanId: utils.Ptr("p500"), Name: utils.Ptr("large")},
+				},
+				defaultPlanId: utils.Ptr("p500"),
+			},
+			wantErr: false,
+		},
+		{
+			name: "no default plan reported",
+			args: args{
+				plans: []vpn.Plan{{PlanId: utils.Ptr("p10")}},
+			},
+			wantErr: false,
+		},
 	}
 	params := testparams.NewTestParams()
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := outputResult(params.Printer, tt.args.outputFormat, tt.args.plans, tt.args.projectLabel); (err != nil) != tt.wantErr {
+			if err := outputResult(params.Printer, tt.args.outputFormat, tt.args.plans, tt.args.defaultPlanId, tt.args.projectLabel); (err != nil) != tt.wantErr {
 				t.Errorf("outputResult() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

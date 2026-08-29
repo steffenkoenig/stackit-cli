@@ -66,7 +66,7 @@ func NewCmd(params *types.CmdParams) *cobra.Command {
 				resp.Plans = resp.Plans[:*model.Limit]
 			}
 
-			return outputResult(params.Printer, model.OutputFormat, resp.Plans, model.Region)
+			return outputResult(params.Printer, model.OutputFormat, resp.Plans, resp.DefaultPlanId, model.Region)
 		},
 	}
 	configureFlags(cmd)
@@ -101,7 +101,7 @@ func buildRequest(ctx context.Context, model *inputModel, apiClient *vpn.APIClie
 	return apiClient.DefaultAPI.ListPlans(ctx, model.Region)
 }
 
-func outputResult(p *print.Printer, outputFormat string, plans []vpn.Plan, region string) error {
+func outputResult(p *print.Printer, outputFormat string, plans []vpn.Plan, defaultPlanId *string, region string) error {
 	return p.OutputResult(outputFormat, plans, func() error {
 		if len(plans) == 0 {
 			p.Info("No plans found for Region %q\n", region)
@@ -109,15 +109,20 @@ func outputResult(p *print.Printer, outputFormat string, plans []vpn.Plan, regio
 		}
 
 		table := tables.NewTable()
-		table.SetHeader("ID", "NAME", "MAX BANDWIDTH", "MAX CONNECTIONS", "SKU")
+		table.SetHeader("ID", "NAME", "MAX BANDWIDTH", "MAX CONNECTIONS", "SKU", "DEFAULT")
 
 		for _, plan := range plans {
+			isDefault := ""
+			if defaultPlanId != nil && plan.PlanId != nil && *plan.PlanId == *defaultPlanId {
+				isDefault = "*"
+			}
 			table.AddRow(
 				utils.PtrString(plan.PlanId),
 				utils.PtrString(plan.Name),
 				utils.PtrString(plan.MaxBandwidth),
 				utils.PtrString(plan.MaxConnections),
 				utils.PtrString(plan.Sku),
+				isDefault,
 			)
 		}
 		p.Outputln(table.Render())

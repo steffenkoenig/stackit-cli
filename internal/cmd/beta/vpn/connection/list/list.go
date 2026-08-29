@@ -21,11 +21,13 @@ import (
 
 const (
 	gatewayIdFlag = "gateway-id"
+	limitFlag     = "limit"
 )
 
 type inputModel struct {
 	*globalflags.GlobalFlagModel
 	GatewayId *string
+	Limit     *int64
 }
 
 func NewCmd(p *types.CmdParams) *cobra.Command {
@@ -38,6 +40,9 @@ func NewCmd(p *types.CmdParams) *cobra.Command {
 			examples.NewExample(
 				`List all VPN connections of a gateway`,
 				"$ stackit beta vpn connection list --gateway-id xxx"),
+			examples.NewExample(
+				`List up to 4 VPN connections of a gateway`,
+				"$ stackit beta vpn connection list --gateway-id xxx --limit 4"),
 		),
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := context.Background()
@@ -62,6 +67,11 @@ func NewCmd(p *types.CmdParams) *cobra.Command {
 				return fmt.Errorf("list VPN connections: %w", err)
 			}
 
+			// Truncate output
+			if resp != nil && model.Limit != nil && len(resp.Connections) > int(*model.Limit) {
+				resp.Connections = resp.Connections[:*model.Limit]
+			}
+
 			return outputResult(p.Printer, model, resp)
 		},
 	}
@@ -71,6 +81,7 @@ func NewCmd(p *types.CmdParams) *cobra.Command {
 
 func configureFlags(cmd *cobra.Command) {
 	cmd.Flags().Var(flags.UUIDFlag(), gatewayIdFlag, "Gateway ID")
+	cmd.Flags().Int64(limitFlag, 0, "Maximum number of entries to list")
 
 	err := flags.MarkFlagsRequired(cmd, gatewayIdFlag)
 	cobra.CheckErr(err)
@@ -82,9 +93,18 @@ func parseInput(p *print.Printer, cmd *cobra.Command) (*inputModel, error) {
 		return nil, &cliErr.ProjectIdError{}
 	}
 
+	limit := flags.FlagToInt64Pointer(p, cmd, limitFlag)
+	if limit != nil && *limit < 1 {
+		return nil, &cliErr.FlagValidationError{
+			Flag:    limitFlag,
+			Details: "must be greater than 0",
+		}
+	}
+
 	model := inputModel{
 		GlobalFlagModel: globalFlags,
 		GatewayId:       flags.FlagToStringPointer(p, cmd, gatewayIdFlag),
+		Limit:           limit,
 	}
 
 	p.DebugInputModel(model)
