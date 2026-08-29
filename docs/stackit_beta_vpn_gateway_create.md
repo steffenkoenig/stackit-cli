@@ -21,6 +21,9 @@ stackit beta vpn gateway create [flags]
 
   Create a vpn gateway with bgp enabled, yyy as local asn and [aaa, bbb] as override advertised routes
   $ stackit beta vpn gateway create --name xxx --plan-id p500 --routing-type POLICY_BASED --availability-zone-tunnel-1 eu01-1 --availability-zone-tunnel-2 eu01-1 --bgp-local-asn yyy --bgp-override-advertised-routes aaa,bbb
+
+  Create a vpn gateway which allocates the network prefix 10.0.0.0/28 and uses the routing table "yyy"
+  $ stackit beta vpn gateway create --name xxx --plan-id p500 --routing-type POLICY_BASED --availability-zone-tunnel-1 eu01-1 --availability-zone-tunnel-2 eu01-1 --network-predefined-prefix 10.0.0.0/28 --network-routing-table-id yyy
 ```
 
 ### Options
@@ -33,6 +36,8 @@ stackit beta vpn gateway create [flags]
   -h, --help                                         Help for "stackit beta vpn gateway create"
       --labels stringToString                        Labels in key=value format, separated by commas (default [])
       --name string                                  Gateway name
+      --network-predefined-prefix strings            The IPv4 network prefixes (CIDR notation) allocated for the vpn gateway. Must have a prefix length of /28 or larger. Cannot be changed after the gateway has been created. (default [])
+      --network-routing-table-id string              Custom routing table ID for the vpn gateway
       --plan-id string                               Plan ID
       --routing-type string                          Routing Type of the VPN (one of: [POLICY_BASED, ROUTE_BASED, BGP_ROUTE_BASED])
 ```

@@ -15,6 +15,7 @@ import (
 	"github.com/stackitcloud/stackit-cli/internal/pkg/print"
 	"github.com/stackitcloud/stackit-cli/internal/pkg/projectname"
 	"github.com/stackitcloud/stackit-cli/internal/pkg/services/vpn/client"
+	vpnUtils "github.com/stackitcloud/stackit-cli/internal/pkg/services/vpn/utils"
 	"github.com/stackitcloud/stackit-cli/internal/pkg/types"
 	"github.com/stackitcloud/stackit-cli/internal/pkg/utils"
 )
@@ -29,6 +30,7 @@ const (
 	remoteSubnetsFlag = "remote-subnets"
 	staticRoutesFlag  = "static-routes"
 
+	tunnel1BgpInboundFilterIdFlag   = "tunnel1-bgp-inbound-filter-id"
 	tunnel1BgpRemoteAsnFlag         = "tunnel1-bgp-remote-asn"
 	tunnel1PeeringLocalAddressFlag  = "tunnel1-peering-local-address"
 	tunnel1PeeringRemoteAddressFlag = "tunnel1-peering-remote-address"
@@ -37,6 +39,7 @@ const (
 	tunnel1PreSharedKeyFlag         = "tunnel1-pre-shared-key"
 	tunnel1RemoteAddressFlag        = "tunnel1-remote-address"
 
+	tunnel2BgpInboundFilterIdFlag   = "tunnel2-bgp-inbound-filter-id"
 	tunnel2BgpRemoteAsnFlag         = "tunnel2-bgp-remote-asn"
 	tunnel2PeeringLocalAddressFlag  = "tunnel2-peering-local-address"
 	tunnel2PeeringRemoteAddressFlag = "tunnel2-peering-remote-address"
@@ -132,6 +135,7 @@ var (
 )
 
 type tunnelInputModel struct {
+	BgpInboundFilterId         *string
 	BgpRemoteAsn               *int64
 	PeeringLocalAddress        *string
 	PeeringRemoteAddress       *string
@@ -174,6 +178,9 @@ func NewCmd(p *types.CmdParams) *cobra.Command {
 			examples.NewExample(
 				`Create a VPN connection`,
 				"$ stackit beta vpn connection create --gateway-id xxx --display-name my-connection --tunnel1-remote-address 1.2.3.4 --tunnel2-remote-address 5.6.7.8"),
+			examples.NewExample(
+				`Create a VPN connection where the BGP session of each tunnel filters incoming routes with the BGP filter "yyy"`,
+				"$ stackit beta vpn connection create --gateway-id xxx --display-name my-connection --tunnel1-remote-address 1.2.3.4 --tunnel2-remote-address 5.6.7.8 --tunnel1-bgp-remote-asn 65000 --tunnel1-bgp-inbound-filter-id yyy --tunnel2-bgp-remote-asn 65000 --tunnel2-bgp-inbound-filter-id yyy"),
 		),
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := context.Background()
@@ -226,6 +233,7 @@ func configureFlags(cmd *cobra.Command) {
 	cmd.Flags().StringSlice(remoteSubnetsFlag, nil, "Defaults to 0.0.0.0/0 for Route-based VPN configurations. Mandatory for Policy-based.")
 	cmd.Flags().StringSlice(staticRoutesFlag, nil, "Use this for route-based VPN.")
 
+	cmd.Flags().Var(flags.UUIDFlag(), tunnel1BgpInboundFilterIdFlag, "Tunnel 1 BGP Inbound Filter ID.\nID of the BGP filter to apply to incoming routes from this tunnel's BGP neighbor. The filter must exist in the same gateway and --tunnel1-bgp-remote-asn must be set.")
 	cmd.Flags().Int64(tunnel1BgpRemoteAsnFlag, 0, "Required: Tunnel 1 BGP Remote ASN.\nASN for private use (reserved by IANA), both 16Bit and 32Bit ranges are valid (RFC 6996).")
 	cmd.Flags().String(tunnel1PeeringLocalAddressFlag, "", "Tunnel 1 Peering Local Address.\nThe peering object defines the point-to-point IP configuration for the Tunnel Interface. These addresses serve as next-hop identifiers and are used for BGP peering sessions and can be used in Static Route-Based connectivity.")
 	cmd.Flags().String(tunnel1PeeringRemoteAddressFlag, "", "Tunnel 1 Peering Remote Address")
@@ -242,6 +250,7 @@ func configureFlags(cmd *cobra.Command) {
 	cmd.Flags().String(tunnel1PreSharedKeyFlag, "", "Required: Tunnel 1 Pre Shared Key.\nA Pre-Shared Key for authentication. Required in create-requests, optional in update-requests and omitted in every response.")
 	cmd.Flags().String(tunnel1RemoteAddressFlag, "", "Tunnel 1 Remote Address")
 
+	cmd.Flags().Var(flags.UUIDFlag(), tunnel2BgpInboundFilterIdFlag, "Tunnel 2 BGP Inbound Filter ID.\nID of the BGP filter to apply to incoming routes from this tunnel's BGP neighbor. The filter must exist in the same gateway and --tunnel2-bgp-remote-asn must be set.")
 	cmd.Flags().Int64(tunnel2BgpRemoteAsnFlag, 0, "Tunnel 2 BGP Remote ASN")
 	cmd.Flags().String(tunnel2PeeringLocalAddressFlag, "", "Tunnel 2 Peering Local Address.\nThe peering object defines the point-to-point IP configuration for the Tunnel Interface. These addresses serve as next-hop identifiers and are used for BGP peering sessions and can be used in Static Route-Based connectivity.")
 	cmd.Flags().String(tunnel2PeeringRemoteAddressFlag, "", "Tunnel 2 Peering Remote Address")
@@ -291,6 +300,7 @@ func parseInput(p *print.Printer, cmd *cobra.Command) (*inputModel, error) {
 		StaticRoutes:  flags.FlagToStringSliceValue(p, cmd, staticRoutesFlag),
 
 		Tunnel1: tunnelInputModel{
+			BgpInboundFilterId:         flags.FlagToStringPointer(p, cmd, tunnel1BgpInboundFilterIdFlag),
 			BgpRemoteAsn:               flags.FlagToInt64Pointer(p, cmd, tunnel1BgpRemoteAsnFlag),
 			PeeringLocalAddress:        flags.FlagToStringPointer(p, cmd, tunnel1PeeringLocalAddressFlag),
 			PeeringRemoteAddress:       flags.FlagToStringPointer(p, cmd, tunnel1PeeringRemoteAddressFlag),
@@ -309,6 +319,7 @@ func parseInput(p *print.Printer, cmd *cobra.Command) (*inputModel, error) {
 		},
 
 		Tunnel2: tunnelInputModel{
+			BgpInboundFilterId:         flags.FlagToStringPointer(p, cmd, tunnel2BgpInboundFilterIdFlag),
 			BgpRemoteAsn:               flags.FlagToInt64Pointer(p, cmd, tunnel2BgpRemoteAsnFlag),
 			PeeringLocalAddress:        flags.FlagToStringPointer(p, cmd, tunnel2PeeringLocalAddressFlag),
 			PeeringRemoteAddress:       flags.FlagToStringPointer(p, cmd, tunnel2PeeringRemoteAddressFlag),
@@ -327,8 +338,36 @@ func parseInput(p *print.Printer, cmd *cobra.Command) (*inputModel, error) {
 		},
 	}
 
+	// A BGP filter can only be attached to a tunnel which has a BGP session.
+	for _, tunnel := range []struct {
+		model               *tunnelInputModel
+		remoteAsnFlag       string
+		inboundFilterIdFlag string
+	}{
+		{&model.Tunnel1, tunnel1BgpRemoteAsnFlag, tunnel1BgpInboundFilterIdFlag},
+		{&model.Tunnel2, tunnel2BgpRemoteAsnFlag, tunnel2BgpInboundFilterIdFlag},
+	} {
+		if tunnel.model.BgpInboundFilterId != nil && tunnel.model.BgpRemoteAsn == nil {
+			return nil, &cliErr.DependingFlagIsMissing{
+				MissingFlag: tunnel.remoteAsnFlag,
+				SetFlag:     tunnel.inboundFilterIdFlag,
+			}
+		}
+	}
+
+	warnDeprecatedIntegrityAlgorithms(p, &model)
+
 	p.DebugInputModel(model)
 	return &model, nil
+}
+
+// warnDeprecatedIntegrityAlgorithms warns about every deprecated integrity algorithm configured for
+// either tunnel, so users can migrate to a stronger algorithm.
+func warnDeprecatedIntegrityAlgorithms(p *print.Printer, model *inputModel) {
+	vpnUtils.WarnDeprecatedIntegrityAlgorithms(p, tunnel1Phase1IntegrityAlgorithmsFlag.Name(), model.Tunnel1.Phase1IntegrityAlgorithms)
+	vpnUtils.WarnDeprecatedIntegrityAlgorithms(p, tunnel1Phase2IntegrityAlgorithmsFlag.Name(), model.Tunnel1.Phase2IntegrityAlgorithms)
+	vpnUtils.WarnDeprecatedIntegrityAlgorithms(p, tunnel2Phase1IntegrityAlgorithmsFlag.Name(), model.Tunnel2.Phase1IntegrityAlgorithms)
+	vpnUtils.WarnDeprecatedIntegrityAlgorithms(p, tunnel2Phase2IntegrityAlgorithmsFlag.Name(), model.Tunnel2.Phase2IntegrityAlgorithms)
 }
 
 func buildTunnelConfiguration(model *tunnelInputModel) vpn.TunnelConfiguration {
@@ -338,6 +377,9 @@ func buildTunnelConfiguration(model *tunnelInputModel) vpn.TunnelConfiguration {
 	if model.BgpRemoteAsn != nil {
 		tunnel.Bgp = &vpn.BGPTunnelConfig{
 			RemoteAsn: *model.BgpRemoteAsn,
+		}
+		if model.BgpInboundFilterId != nil {
+			tunnel.Bgp.InboundFilterId = *vpn.NewNullableString(model.BgpInboundFilterId)
 		}
 	}
 	if model.PeeringLocalAddress != nil || model.PeeringRemoteAddress != nil {

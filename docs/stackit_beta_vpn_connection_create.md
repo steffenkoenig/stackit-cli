@@ -15,6 +15,9 @@ stackit beta vpn connection create [flags]
 ```
   Create a VPN connection
   $ stackit beta vpn connection create --gateway-id xxx --display-name my-connection --tunnel1-remote-address 1.2.3.4 --tunnel2-remote-address 5.6.7.8
+
+  Create a VPN connection where the BGP session of each tunnel filters incoming routes with the BGP filter "yyy"
+  $ stackit beta vpn connection create --gateway-id xxx --display-name my-connection --tunnel1-remote-address 1.2.3.4 --tunnel2-remote-address 5.6.7.8 --tunnel1-bgp-remote-asn 65000 --tunnel1-bgp-inbound-filter-id yyy --tunnel2-bgp-remote-asn 65000 --tunnel2-bgp-inbound-filter-id yyy
 ```
 
 ### Options
@@ -28,6 +31,8 @@ stackit beta vpn connection create [flags]
       --local-subnets strings                          Defaults to 0.0.0.0/0 for Route-based VPN configurations. Mandatory for Policy-based.
       --remote-subnets strings                         Defaults to 0.0.0.0/0 for Route-based VPN configurations. Mandatory for Policy-based.
       --static-routes strings                          Use this for route-based VPN.
+      --tunnel1-bgp-inbound-filter-id string           Tunnel 1 BGP Inbound Filter ID.
+                                                       ID of the BGP filter to apply to incoming routes from this tunnel's BGP neighbor. The filter must exist in the same gateway and --tunnel1-bgp-remote-asn must be set.
       --tunnel1-bgp-remote-asn int                     Required: Tunnel 1 BGP Remote ASN.
                                                        ASN for private use (reserved by IANA), both 16Bit and 32Bit ranges are valid (RFC 6996).
       --tunnel1-peering-local-address string           Tunnel 1 Peering Local Address.
@@ -51,6 +56,8 @@ stackit beta vpn connection create [flags]
       --tunnel1-pre-shared-key string                  Required: Tunnel 1 Pre Shared Key.
                                                        A Pre-Shared Key for authentication. Required in create-requests, optional in update-requests and omitted in every response.
       --tunnel1-remote-address string                  Tunnel 1 Remote Address
+      --tunnel2-bgp-inbound-filter-id string           Tunnel 2 BGP Inbound Filter ID.
+                                                       ID of the BGP filter to apply to incoming routes from this tunnel's BGP neighbor. The filter must exist in the same gateway and --tunnel2-bgp-remote-asn must be set.
       --tunnel2-bgp-remote-asn int                     Tunnel 2 BGP Remote ASN
       --tunnel2-peering-local-address string           Tunnel 2 Peering Local Address.
                                                        The peering object defines the point-to-point IP configuration for the Tunnel Interface. These addresses serve as next-hop identifiers and are used for BGP peering sessions and can be used in Static Route-Based connectivity.

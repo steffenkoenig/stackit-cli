@@ -29,6 +29,8 @@ const (
 	bgpOverrideAdvertisedRoutesFlag = "bgp-override-advertised-routes"
 	nameFlag                        = "name"
 	labelsFlag                      = "labels"
+	networkPrefixFlag               = "network-predefined-prefix"
+	networkRoutingTableIdFlag       = "network-routing-table-id"
 	planIdFlag                      = "plan-id"
 )
 
@@ -46,6 +48,7 @@ type inputModel struct {
 	Bgp              *vpn.BGPGatewayConfig
 	Name             string
 	Labels           *map[string]string
+	NetworkConfig    *vpn.NetworkConfig
 	PlanId           string
 	RoutingType      vpn.RoutingType
 }
@@ -68,6 +71,10 @@ func NewCmd(params *types.CmdParams) *cobra.Command {
 			examples.NewExample(
 				`Create a vpn gateway with bgp enabled, yyy as local asn and [aaa, bbb] as override advertised routes`,
 				"$ stackit beta vpn gateway create --name xxx --plan-id p500 --routing-type POLICY_BASED --availability-zone-tunnel-1 eu01-1 --availability-zone-tunnel-2 eu01-1 --bgp-local-asn yyy --bgp-override-advertised-routes aaa,bbb",
+			),
+			examples.NewExample(
+				`Create a vpn gateway which allocates the network prefix 10.0.0.0/28 and uses the routing table "yyy"`,
+				"$ stackit beta vpn gateway create --name xxx --plan-id p500 --routing-type POLICY_BASED --availability-zone-tunnel-1 eu01-1 --availability-zone-tunnel-2 eu01-1 --network-predefined-prefix 10.0.0.0/28 --network-routing-table-id yyy",
 			),
 		),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -130,6 +137,8 @@ func configureFlags(cmd *cobra.Command) {
 	cmd.Flags().StringArray(bgpOverrideAdvertisedRoutesFlag, nil, "A list of IPv4 Prefixes to advertise via BGP")
 	cmd.Flags().String(nameFlag, "", "Gateway name")
 	cmd.Flags().StringToString(labelsFlag, nil, "Labels in key=value format, separated by commas")
+	cmd.Flags().Var(flags.CIDRSliceFlag(), networkPrefixFlag, "The IPv4 network prefixes (CIDR notation) allocated for the vpn gateway. Must have a prefix length of /28 or larger. Cannot be changed after the gateway has been created.")
+	cmd.Flags().Var(flags.UUIDFlag(), networkRoutingTableIdFlag, "Custom routing table ID for the vpn gateway")
 	cmd.Flags().String(planIdFlag, "", "Plan ID")
 	routingTypeFlag.Register(cmd.Flags())
 
@@ -170,17 +179,29 @@ func parseInput(p *print.Printer, cmd *cobra.Command, _ []string) (*inputModel, 
 		}
 	}
 
+	networkPrefix := flags.FlagToStringSliceValue(p, cmd, networkPrefixFlag)
+	networkRoutingTableId := flags.FlagToStringPointer(p, cmd, networkRoutingTableIdFlag)
+
+	var networkConfig *vpn.NetworkConfig
+	if networkPrefix != nil || networkRoutingTableId != nil {
+		networkConfig = &vpn.NetworkConfig{
+			PredefinedNetworkPrefix: networkPrefix,
+			RoutingTableId:          networkRoutingTableId,
+		}
+	}
+
 	model := inputModel{
 		GlobalFlagModel: globalFlags,
 		AvailabilityZone: vpn.CreateGatewayPayloadAvailabilityZones{
 			Tunnel1: flags.FlagToStringValue(p, cmd, availabilityZoneTunnel1Flag),
 			Tunnel2: flags.FlagToStringValue(p, cmd, availabilityZoneTunnel2Flag),
 		},
-		Bgp:         bgp,
-		Name:        flags.FlagToStringValue(p, cmd, nameFlag),
-		Labels:      flags.FlagToStringToStringPointer(p, cmd, labelsFlag),
-		PlanId:      flags.FlagToStringValue(p, cmd, planIdFlag),
-		RoutingType: vpn.RoutingType(routingTypeFlag.Get()),
+		Bgp:           bgp,
+		Name:          flags.FlagToStringValue(p, cmd, nameFlag),
+		Labels:        flags.FlagToStringToStringPointer(p, cmd, labelsFlag),
+		NetworkConfig: networkConfig,
+		PlanId:        flags.FlagToStringValue(p, cmd, planIdFlag),
+		RoutingType:   vpn.RoutingType(routingTypeFlag.Get()),
 	}
 
 	p.DebugInputModel(model)
@@ -195,6 +216,7 @@ func buildRequest(ctx context.Context, model *inputModel, apiClient *vpn.APIClie
 			Bgp:               model.Bgp,
 			DisplayName:       model.Name,
 			Labels:            model.Labels,
+			NetworkConfig:     model.NetworkConfig,
 			PlanId:            model.PlanId,
 			RoutingType:       model.RoutingType,
 		},

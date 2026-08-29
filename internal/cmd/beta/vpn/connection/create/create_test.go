@@ -26,6 +26,7 @@ var (
 	testCtx       = context.WithValue(context.Background(), testCtxKey{}, "test")
 	testProjectId = uuid.NewString()
 	testGatewayID = uuid.NewString()
+	testFilterId  = uuid.NewString()
 	testClient, _ = vpn.NewAPIClient(
 		sdkConfig.WithoutAuthentication(),
 	)
@@ -177,6 +178,61 @@ func TestParseInput(t *testing.T) {
 			}),
 			isValid: false,
 		},
+		{
+			description: "bgp inbound filter ids",
+			argValues:   []string{},
+			flagValues: fixtureFlagValues(func(flagValues map[string]string) {
+				flagValues[tunnel1BgpRemoteAsnFlag] = "65000"
+				flagValues[tunnel1BgpInboundFilterIdFlag] = testFilterId
+				flagValues[tunnel2BgpRemoteAsnFlag] = "65000"
+				flagValues[tunnel2BgpInboundFilterIdFlag] = testFilterId
+			}),
+			isValid: true,
+			expectedModel: fixtureInputModel(func(model *inputModel) {
+				model.Tunnel1.BgpRemoteAsn = utils.Ptr(int64(65000))
+				model.Tunnel1.BgpInboundFilterId = utils.Ptr(testFilterId)
+				model.Tunnel2.BgpRemoteAsn = utils.Ptr(int64(65000))
+				model.Tunnel2.BgpInboundFilterId = utils.Ptr(testFilterId)
+			}),
+		},
+		{
+			description: "bgp inbound filter id without remote asn",
+			argValues:   []string{},
+			flagValues: fixtureFlagValues(func(flagValues map[string]string) {
+				flagValues[tunnel1BgpInboundFilterIdFlag] = testFilterId
+			}),
+			isValid: false,
+		},
+		{
+			description: "invalid bgp inbound filter id",
+			argValues:   []string{},
+			flagValues: fixtureFlagValues(func(flagValues map[string]string) {
+				flagValues[tunnel1BgpInboundFilterIdFlag] = "not-a-uuid"
+			}),
+			isValid: false,
+		},
+		{
+			description: "deprecated sha1 integrity algorithm is accepted",
+			argValues:   []string{},
+			flagValues: fixtureFlagValues(func(flagValues map[string]string) {
+				flagValues[tunnel1Phase1IntegrityAlgorithmsFlag.Name()] = "sha1"
+			}),
+			isValid: true,
+			expectedModel: fixtureInputModel(func(model *inputModel) {
+				model.Tunnel1.Phase1IntegrityAlgorithms = []vpn.PhaseIntegrityAlgorithmsInner{"sha1"}
+			}),
+		},
+		{
+			description: "sha2_512 integrity algorithm",
+			argValues:   []string{},
+			flagValues: fixtureFlagValues(func(flagValues map[string]string) {
+				flagValues[tunnel1Phase1IntegrityAlgorithmsFlag.Name()] = "sha2_512"
+			}),
+			isValid: true,
+			expectedModel: fixtureInputModel(func(model *inputModel) {
+				model.Tunnel1.Phase1IntegrityAlgorithms = []vpn.PhaseIntegrityAlgorithmsInner{"sha2_512"}
+			}),
+		},
 	}
 
 	for _, tt := range tests {
@@ -215,6 +271,7 @@ func TestBuildRequest(t *testing.T) {
 				model.Tunnel1.Phase2RekeyTime = utils.Ptr(int32(3600))
 				model.Tunnel1.Phase2DpdAction = utils.Ptr(vpn.TunnelConfigurationPhase2AllOfDpdAction("restart"))
 				model.Tunnel1.Phase2StartAction = utils.Ptr(vpn.TunnelConfigurationPhase2AllOfStartAction("start"))
+				model.Tunnel1.BgpInboundFilterId = utils.Ptr(testFilterId)
 			}),
 			expectedResult: fixtureRequest(func(request *vpn.ApiCreateGatewayConnectionRequest) {
 				payload := vpn.CreateGatewayConnectionPayload{
@@ -228,7 +285,8 @@ func TestBuildRequest(t *testing.T) {
 						RemoteAddress: "1.2.3.4",
 						PreSharedKey:  utils.Ptr("test-psk-1"),
 						Bgp: &vpn.BGPTunnelConfig{
-							RemoteAsn: 65000,
+							RemoteAsn:       65000,
+							InboundFilterId: *vpn.NewNullableString(utils.Ptr(testFilterId)),
 						},
 						Peering: &vpn.PeeringConfig{
 							LocalAddress:  utils.Ptr("169.254.0.1"),

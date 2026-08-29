@@ -3,6 +3,7 @@ package vpn
 import (
 	"github.com/spf13/cobra"
 
+	bgpfilter "github.com/stackitcloud/stackit-cli/internal/cmd/beta/vpn/bgp-filter"
 	"github.com/stackitcloud/stackit-cli/internal/cmd/beta/vpn/connection"
 	"github.com/stackitcloud/stackit-cli/internal/cmd/beta/vpn/gateway"
 	"github.com/stackitcloud/stackit-cli/internal/cmd/beta/vpn/plans"
@@ -24,6 +25,7 @@ func NewCmd(params *types.CmdParams) *cobra.Command {
 }
 
 func addSubcommands(cmd *cobra.Command, params *types.CmdParams) {
+	cmd.AddCommand(bgpfilter.NewCmd(params))
 	cmd.AddCommand(connection.NewCmd(params))
 	cmd.AddCommand(gateway.NewCmd(params))
 	cmd.AddCommand(plans.NewCmd(params))

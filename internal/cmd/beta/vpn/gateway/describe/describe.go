@@ -3,6 +3,7 @@ package describe
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
 	vpn "github.com/stackitcloud/stackit-sdk-go/services/vpn/v1api"
@@ -116,6 +117,16 @@ func outputResult(p *print.Printer, outputFormat, gatewayId, projectLabel string
 		table.AddRow("Availability Zones Tunnel 1", gateway.AvailabilityZones.Tunnel1)
 		table.AddSeparator()
 		table.AddRow("Availability Zones Tunnel 2", gateway.AvailabilityZones.Tunnel2)
+		if networkConfig := gateway.NetworkConfig; networkConfig != nil {
+			if len(networkConfig.PredefinedNetworkPrefix) > 0 {
+				table.AddSeparator()
+				table.AddRow("Predefined Network Prefix", strings.Join(networkConfig.PredefinedNetworkPrefix, "\n"))
+			}
+			if networkConfig.RoutingTableId != nil {
+				table.AddSeparator()
+				table.AddRow("Routing Table ID", utils.PtrString(networkConfig.RoutingTableId))
+			}
+		}
 
 		if err := table.Display(p); err != nil {
 			return fmt.Errorf("render tables: %w", err)

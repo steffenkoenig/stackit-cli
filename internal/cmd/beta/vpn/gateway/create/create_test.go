@@ -30,6 +30,8 @@ var testAvailabilityZoneTunnel1 = "eu01-1"
 var testAvailabilityZoneTunnel2 = "eu01-2"
 var testBgpLocalAsn = 64512
 var testBgpOverrideAdvertisedRoutes = "10.10.10.10/32"
+var testNetworkPrefix = "10.0.0.0/28"
+var testRoutingTableId = uuid.NewString()
 
 func fixtureFlagValues(mods ...func(flagValues map[string]string)) map[string]string {
 	flagValues := map[string]string{
@@ -42,6 +44,8 @@ func fixtureFlagValues(mods ...func(flagValues map[string]string)) map[string]st
 		bgpOverrideAdvertisedRoutesFlag: testBgpOverrideAdvertisedRoutes,
 		nameFlag:                        testName,
 		labelsFlag:                      "foo=bar",
+		networkPrefixFlag:               testNetworkPrefix,
+		networkRoutingTableIdFlag:       testRoutingTableId,
 		planIdFlag:                      testPlanId,
 		routingTypeFlag.Name():          string(testRoutingType),
 	}
@@ -71,6 +75,10 @@ func fixtureInputModel(mods ...func(model *inputModel)) *inputModel {
 		},
 		Labels: &map[string]string{
 			"foo": "bar",
+		},
+		NetworkConfig: &vpn.NetworkConfig{
+			PredefinedNetworkPrefix: []string{testNetworkPrefix},
+			RoutingTableId:          &testRoutingTableId,
 		},
 		PlanId:      testPlanId,
 		RoutingType: testRoutingType,
@@ -106,6 +114,10 @@ func fixturePayload(mods ...func(request *vpn.CreateGatewayPayload)) vpn.CreateG
 		Labels: &map[string]string{
 			"foo": "bar",
 		},
+		NetworkConfig: &vpn.NetworkConfig{
+			PredefinedNetworkPrefix: []string{testNetworkPrefix},
+			RoutingTableId:          &testRoutingTableId,
+		},
 		PlanId:      testPlanId,
 		RoutingType: testRoutingType,
 	}
@@ -135,12 +147,46 @@ func TestParseInput(t *testing.T) {
 				delete(flagValues, labelsFlag)
 				delete(flagValues, bgpLocalAsnFlag)
 				delete(flagValues, bgpOverrideAdvertisedRoutesFlag)
+				delete(flagValues, networkPrefixFlag)
+				delete(flagValues, networkRoutingTableIdFlag)
 			}),
 			isValid: true,
 			expectedModel: fixtureInputModel(func(model *inputModel) {
 				model.Labels = nil
 				model.Bgp = nil
+				model.NetworkConfig = nil
 			}),
+		},
+		{
+			description: "network prefix only",
+			flagValues: fixtureFlagValues(func(flagValues map[string]string) {
+				delete(flagValues, networkRoutingTableIdFlag)
+			}),
+			isValid: true,
+			expectedModel: fixtureInputModel(func(model *inputModel) {
+				model.NetworkConfig = &vpn.NetworkConfig{
+					PredefinedNetworkPrefix: []string{testNetworkPrefix},
+				}
+			}),
+		},
+		{
+			description: "routing table id only",
+			flagValues: fixtureFlagValues(func(flagValues map[string]string) {
+				delete(flagValues, networkPrefixFlag)
+			}),
+			isValid: true,
+			expectedModel: fixtureInputModel(func(model *inputModel) {
+				model.NetworkConfig = &vpn.NetworkConfig{
+					RoutingTableId: &testRoutingTableId,
+				}
+			}),
+		},
+		{
+			description: "invalid network prefix",
+			flagValues: fixtureFlagValues(func(flagValues map[string]string) {
+				flagValues[networkPrefixFlag] = "not-a-cidr"
+			}),
+			isValid: false,
 		},
 		{
 			description: "multiple labels",
