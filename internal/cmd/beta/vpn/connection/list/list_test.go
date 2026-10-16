@@ -93,6 +93,25 @@ func TestParseInput(t *testing.T) {
 			isValid: false,
 		},
 		{
+			description: "with limit",
+			argValues:   []string{},
+			flagValues: fixtureFlagValues(func(flagValues map[string]string) {
+				flagValues[limitFlag] = "4"
+			}),
+			isValid: true,
+			expectedModel: fixtureInputModel(func(model *inputModel) {
+				model.Limit = utils.Ptr(int64(4))
+			}),
+		},
+		{
+			description: "invalid limit",
+			argValues:   []string{},
+			flagValues: fixtureFlagValues(func(flagValues map[string]string) {
+				flagValues[limitFlag] = "0"
+			}),
+			isValid: false,
+		},
+		{
 			description: "no gateway id",
 			argValues:   []string{},
 			flagValues: fixtureFlagValues(func(flagValues map[string]string) {

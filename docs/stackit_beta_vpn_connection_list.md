@@ -15,6 +15,9 @@ stackit beta vpn connection list [flags]
 ```
   List all VPN connections of a gateway
   $ stackit beta vpn connection list --gateway-id xxx
+
+  List up to 4 VPN connections of a gateway
+  $ stackit beta vpn connection list --gateway-id xxx --limit 4
 ```
 
 ### Options
@@ -22,6 +25,7 @@ stackit beta vpn connection list [flags]
 ```
       --gateway-id string   Gateway ID
   -h, --help                Help for "stackit beta vpn connection list"
+      --limit int           Maximum number of entries to list
 ```
 
 ### Options inherited from parent commands

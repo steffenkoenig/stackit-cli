@@ -35,4 +35,5 @@ stackit beta vpn gateway [flags]
 * [stackit beta vpn gateway describe](./stackit_beta_vpn_gateway_describe.md)	 - Shows details of a gateway
 * [stackit beta vpn gateway list](./stackit_beta_vpn_gateway_list.md)	 - Lists all vpn gateways
 * [stackit beta vpn gateway status](./stackit_beta_vpn_gateway_status.md)	 - Shows the status of a gateway
+* [stackit beta vpn gateway update](./stackit_beta_vpn_gateway_update.md)	 - Updates a vpn gateway
 

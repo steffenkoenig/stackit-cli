@@ -48,6 +48,20 @@ func FlagToStringSliceValue(p *print.Printer, cmd *cobra.Command, flag string) [
 	return nil
 }
 
+// Returns the flag's value as a []int64.
+// Returns nil if the flag is not set, if its value can not be converted to []int64, or if the flag does not exist.
+func FlagToInt64SliceValue(p *print.Printer, cmd *cobra.Command, flag string) []int64 {
+	value, err := cmd.Flags().GetInt64Slice(flag)
+	if err != nil {
+		p.Debug(print.ErrorLevel, "convert flag to int64 slice value: %v", err)
+		return nil
+	}
+	if cmd.Flag(flag).Changed {
+		return value
+	}
+	return nil
+}
+
 // Returns the flag's value as a []string.
 // Returns nil if flag is not set, if its value can not be converted to []string, or if the flag does not exist.
 func FlagToStringArrayValue(p *print.Printer, cmd *cobra.Command, flag string) []string {

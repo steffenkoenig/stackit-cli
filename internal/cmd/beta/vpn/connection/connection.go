@@ -8,6 +8,7 @@ import (
 	"github.com/stackitcloud/stackit-cli/internal/cmd/beta/vpn/connection/describe"
 	"github.com/stackitcloud/stackit-cli/internal/cmd/beta/vpn/connection/list"
 	"github.com/stackitcloud/stackit-cli/internal/cmd/beta/vpn/connection/status"
+	"github.com/stackitcloud/stackit-cli/internal/cmd/beta/vpn/connection/update"
 	"github.com/stackitcloud/stackit-cli/internal/pkg/args"
 	"github.com/stackitcloud/stackit-cli/internal/pkg/types"
 	"github.com/stackitcloud/stackit-cli/internal/pkg/utils"
@@ -31,4 +32,5 @@ func addSubcommands(cmd *cobra.Command, p *types.CmdParams) {
 	cmd.AddCommand(describe.NewCmd(p))
 	cmd.AddCommand(list.NewCmd(p))
 	cmd.AddCommand(status.NewCmd(p))
+	cmd.AddCommand(update.NewCmd(p))
 }
